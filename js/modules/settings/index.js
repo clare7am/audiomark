@@ -1,5 +1,5 @@
 // ===== Settings Module =====
-// Settings panel for audio/bookmark paths
+// Settings panel for audio path
 (function(){
   'use strict';
 
@@ -15,14 +15,12 @@
     const closeBtn = $('close-settings');
     const saveBtn = $('save-config');
     const cfgAudioDir = $('cfg-audio-dir');
-    const cfgBookmarkDir = $('cfg-bookmark-dir');
 
     if(!btn || !modal) return;
 
     btn.addEventListener('click', async ()=>{
       const cfg = AppState.getConfig();
       cfgAudioDir.value = cfg.audioDir || '';
-      cfgBookmarkDir.value = cfg.bookmarkDir || '';
       modal.style.display = 'flex';
     });
 
@@ -36,12 +34,11 @@
 
     if(saveBtn) saveBtn.addEventListener('click', async ()=>{
       const audioDir = cfgAudioDir.value.trim();
-      const bookmarkDir = cfgBookmarkDir.value.trim();
-      if(!audioDir || !bookmarkDir){
+      if(!audioDir){
         DomUtils.toast('路径不能为空', 'info');
         return;
       }
-      const ok = await AppState.saveConfig({audioDir, bookmarkDir});
+      const ok = await AppState.saveConfig({audioDir});
       if(ok){
         DomUtils.toast('已保存，正在重新加载...', 'success');
         modal.style.display = 'none';

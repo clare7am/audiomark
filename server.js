@@ -5,15 +5,13 @@ const PORT = 8766;
 
 // Config file
 const CONFIG_PATH = path.join(__dirname, 'config.json');
-let config = { audioDir: 'D:\\church\\audio', bookmarkDir: 'D:\\church\\bookmarks', modules: ['player', 'bookmarks', 'file-tree', 'settings'] };
+let config = { audioDir: 'D:\\church\\audio', modules: ['player', 'bookmarks', 'file-tree', 'settings'] };
 if (fs.existsSync(CONFIG_PATH)) {
   try { config = { ...config, ...JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf-8')) }; } catch(e) {}
 }
 // Resolve to absolute paths
 config.audioDir = path.resolve(config.audioDir);
-config.bookmarkDir = path.resolve(config.bookmarkDir);
 const AUDIO_DIR = config.audioDir;
-const BOOKMARKS_DIR = config.bookmarkDir;
 
 // MIME types
 const MIME = {
@@ -62,9 +60,6 @@ function scanDir(dir, prefix = '') {
   return results;
 }
 
-// Ensure bookmarks dir exists
-if (!fs.existsSync(BOOKMARKS_DIR)) fs.mkdirSync(BOOKMARKS_DIR, { recursive: true });
-
 const server = http.createServer((req, res) => {
   const url = new URL(req.url, `http://localhost:${PORT}`);
   let urlPath = url.pathname;
@@ -72,7 +67,7 @@ const server = http.createServer((req, res) => {
   // API: get config
   if (urlPath === '/api/config') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ audioDir: config.audioDir, bookmarkDir: config.bookmarkDir, modules: config.modules }));
+    res.end(JSON.stringify({ audioDir: config.audioDir, modules: config.modules }));
     return;
   }
 
@@ -84,11 +79,10 @@ const server = http.createServer((req, res) => {
       try {
         const data = JSON.parse(body);
         if (data.audioDir) config.audioDir = path.resolve(data.audioDir);
-        if (data.bookmarkDir) config.bookmarkDir = path.resolve(data.bookmarkDir);
         if (data.modules) config.modules = data.modules;
-        fs.writeFileSync(CONFIG_PATH, JSON.stringify({ audioDir: config.audioDir, bookmarkDir: config.bookmarkDir, modules: config.modules }, null, 2));
+        fs.writeFileSync(CONFIG_PATH, JSON.stringify({ audioDir: config.audioDir, modules: config.modules }, null, 2));
         res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ ok: true, audioDir: config.audioDir, bookmarkDir: config.bookmarkDir, modules: config.modules }));
+        res.end(JSON.stringify({ ok: true, audioDir: config.audioDir, modules: config.modules }));
       } catch (e) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: e.message }));
@@ -105,11 +99,10 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  // API: get bookmark for a given audio name
+  // API: get bookmark for a given audio path (bookmark JSON lives next to audio file)
   if (urlPath.startsWith('/api/bookmark/')) {
-    const fileName = decodeURIComponent(urlPath.split('/api/bookmark/')[1]);
-    const jsonName = fileName.replace(/\.[^.]+$/, '') + '.json';
-    const jsonPath = path.join(BOOKMARKS_DIR, jsonName);
+    const audioRelativePath = decodeURIComponent(urlPath.split('/api/bookmark/')[1]);
+    const jsonPath = path.join(AUDIO_DIR, audioRelativePath.replace(/\.[^.]+$/, '') + '.json');
     if (fs.existsSync(jsonPath)) {
       const data = fs.readFileSync(jsonPath, 'utf-8');
       res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -128,8 +121,9 @@ const server = http.createServer((req, res) => {
     req.on('end', () => {
       try {
         const data = JSON.parse(body);
-        const jsonName = data.fileName.replace(/\.[^.]+$/, '') + '.json';
-        const jsonPath = path.join(BOOKMARKS_DIR, jsonName);
+        // Bookmark JSON lives next to the audio file in AUDIO_DIR
+        const audioRelativePath = data.audioPath || data.fileName;
+        const jsonPath = path.join(AUDIO_DIR, audioRelativePath.replace(/\.[^.]+$/, '') + '.json');
         fs.writeFileSync(jsonPath, JSON.stringify({ file: data.fileName, bookmarks: data.bookmarks }, null, 2));
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ ok: true }));
@@ -239,7 +233,7 @@ function serveFile(filePath, res, isAudio) {
 server.listen(PORT, () => {
   console.log(`\n🎵 AudioMark Server running at http://localhost:${PORT}`);
   console.log(`   Audio directory: ${AUDIO_DIR}`);
-  console.log(`   Bookmarks saved to: ${BOOKMARKS_DIR}\n`);
+  console.log(`   Bookmarks saved alongside audio files\n`);
 
   // Auto-open browser
   const open = require('child_process').exec;

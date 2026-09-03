@@ -15,6 +15,13 @@
       render();
       loadBookmarks();
     });
+    // Render markers after audio metadata is loaded
+    const a = getAudio();
+    if(a){
+      a.addEventListener('loadedmetadata', ()=>{
+        renderMarkers();
+      });
+    }
   }
 
   function destroy(){}
@@ -125,7 +132,7 @@
     const entry = AppState.get('currentAudio');
     if(!entry) return;
     try{
-      const resp = await fetch(`/api/bookmark/${encodeURIComponent(entry.name)}`);
+      const resp = await fetch(`/api/bookmark/${encodeURIComponent(entry.path)}`);
       if(resp.ok){
         const data = await resp.json();
         if(data.bookmarks && data.bookmarks.length){
@@ -149,6 +156,7 @@
     }
     const data = {
       fileName: entry.name,
+      audioPath: entry.path,  // Use same relative path as audio
       bookmarks: bookmarks.map(b=> ({time: b.time, note: b.note}))
     };
     try{
