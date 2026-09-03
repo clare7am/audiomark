@@ -44,7 +44,6 @@
   .tree-item .name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .tree-folder .icon{color:var(--text3)}
   .tree-audio .icon{color:var(--accent)}
-  .tree-indent{display:inline-block;width:16px;flex-shrink:0}
 
   /* Player Area */
   .player-area{flex:1;display:flex;flex-direction:column;padding:32px;overflow-y:auto;gap:24px}
@@ -128,11 +127,11 @@
 <body>
 
 <div class="header">
-  <h1>🎵 AudioMark <span>音频书签播放器</span></h1>
+  <h1>AudioMark <span>音频书签播放器</span></h1>
   <button id="settings-btn" title="设置">
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
   </button>
-  <div class="current-file" id="current-file">未选择音频</div>
+  <div class="current-file" id="current-file">加载中...</div>
 </div>
 
 <!-- Settings Modal -->
@@ -158,7 +157,7 @@
     <div class="sidebar-header">文件列表</div>
     <div class="file-tree" id="file-tree">
       <div class="empty-state" style="padding:30px 16px">
-        <p>点击左侧按钮<br>选择音频文件夹</p>
+        <p>正在加载...</p>
       </div>
     </div>
   </div>
@@ -167,8 +166,7 @@
   <div class="player-area" id="player-area">
     <div class="empty-state" id="empty-state">
       <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8" fill="currentColor"/></svg>
-      <p>选择音频开始播放</p>
-      <span class="hint">支持 MP3 / WAV / OGG / FLAC / AAC</span>
+      <p>正在加载音频...</p>
     </div>
 
     <div id="player-content" style="display:none">
@@ -180,13 +178,12 @@
       <!-- Progress -->
       <div class="progress-container">
         <div class="time-display">
-          <span id="time-current">00:00.000</span>
-          <span id="time-total">00:00.000</span>
+          <span id="time-current">00:00</span>
+          <span id="time-total">00:00</span>
         </div>
         <div class="progress-bar-wrap" id="progress-wrap">
           <div class="progress-bar">
             <div class="progress-fill" id="progress-fill"></div>
-            <!-- bookmark markers injected here -->
           </div>
         </div>
       </div>
@@ -215,7 +212,7 @@
       <!-- Bookmarks -->
       <div class="bookmarks-section">
         <div class="bookmarks-header">
-          <h3>📑 书签 (<span id="bookmark-count">0</span>)</h3>
+          <h3>书签 (<span id="bookmark-count">0</span>)</h3>
           <button id="add-bookmark">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
             添加书签
@@ -225,8 +222,8 @@
           <div class="no-bookmarks">暂无书签，点击按钮添加</div>
         </div>
         <div class="save-bar">
-          <button class="save-btn" id="save-bookmarks">💾 保存书签</button>
-          <button class="save-btn" id="load-bookmarks">🔄 重新加载书签</button>
+          <button class="save-btn" id="save-bookmarks">保存书签</button>
+          <button class="save-btn" id="load-bookmarks">重新加载书签</button>
         </div>
       </div>
     </div>
@@ -237,550 +234,20 @@
 
 <audio id="audio" preload="auto"></audio>
 
-<script>
-(function(){
-  'use strict';
+<!-- Core -->
+<script src="/js/utils/time.js"></script>
+<script src="/js/utils/dom.js"></script>
+<script src="/js/core/eventBus.js"></script>
+<script src="/js/core/moduleRegistry.js"></script>
+<script src="/js/core/app.js"></script>
 
-  // ===== State =====
-  const audio = document.getElementById('audio');
-  let audioFiles = [];       // [{name, path, file, baseName}]
-  let bookmarks = [];        // [{time, note}]
-  let currentAudio = null;   // current playing audio entry
-  let isDragging = false;
+<!-- Modules (order matters: dependencies first) -->
+<script src="/js/modules/player/index.js"></script>
+<script src="/js/modules/file-tree/index.js"></script>
+<script src="/js/modules/bookmarks/index.js"></script>
+<script src="/js/modules/settings/index.js"></script>
 
-  // ===== DOM =====
-  const $ = id => document.getElementById(id);
-  const currentFileLabel = $('current-file');
-  const fileTree = $('file-tree');
-  const emptyState = $('empty-state');
-  const playerContent = $('player-content');
-  const trackTitle = $('track-title');
-  const trackPath = $('track-path');
-  const progressWrap = $('progress-wrap');
-  const progressFill = $('progress-fill');
-  const timeCurrent = $('time-current');
-  const timeTotal = $('time-total');
-  const btnPlay = $('btn-play');
-  const btnPrev = $('btn-prev');
-  const btnNext = $('btn-next');
-  const bookmarksList = $('bookmarks-list');
-  const bookmarkCount = $('bookmark-count');
-  const addBookmarkBtn = $('add-bookmark');
-  const saveBookmarksBtn = $('save-bookmarks');
-  const loadBookmarksBtn = $('load-bookmarks');
-  const toast = $('toast');
-
-  // ===== Settings =====
-  const settingsModal = $('settings-modal');
-  const cfgAudioDir = $('cfg-audio-dir');
-  const cfgBookmarkDir = $('cfg-bookmark-dir');
-
-  $('settings-btn').addEventListener('click', ()=>{
-    fetch('/api/config')
-      .then(r=>r.json())
-      .then(data=>{
-        cfgAudioDir.value = data.audioDir || '';
-        cfgBookmarkDir.value = data.bookmarkDir || '';
-        settingsModal.style.display = 'flex';
-      })
-      .catch(()=>{
-        settingsModal.style.display = 'flex';
-      });
-  });
-
-  $('close-settings').addEventListener('click', ()=>{
-    settingsModal.style.display = 'none';
-  });
-
-  settingsModal.addEventListener('click', e=>{
-    if(e.target === settingsModal) settingsModal.style.display = 'none';
-  });
-
-  $('save-config').addEventListener('click', ()=>{
-    const audioDir = cfgAudioDir.value.trim();
-    const bookmarkDir = cfgBookmarkDir.value.trim();
-    if(!audioDir || !bookmarkDir){
-      showToast('路径不能为空','info');
-      return;
-    }
-    fetch('/api/config', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({audioDir, bookmarkDir})
-    })
-    .then(r=>r.json())
-    .then(res=>{
-      if(res.ok){
-        showToast('已保存，正在重新加载...','success');
-        settingsModal.style.display = 'none';
-        setTimeout(()=> location.reload(), 500);
-      } else {
-        showToast('保存失败: '+(res.error||''),'info');
-      }
-    })
-    .catch(e=> showToast('保存失败: '+e.message,'info'));
-  });
-
-  // ===== Audio extensions =====
-  const AUDIO_EXT = new Set(['.mp3','.wav','.ogg','.flac','.aac','.m4a','.wma','.webm','.opus']);
-
-  // ===== Toast =====
-  let toastTimer;
-  function showToast(msg, type='info'){
-    clearTimeout(toastTimer);
-    toast.textContent = msg;
-    toast.className = 'toast show ' + type;
-    toastTimer = setTimeout(()=> toast.className='toast', 2500);
-  }
-
-  // ===== Format time =====
-  function formatTime(sec, showMs=false){
-    if(isNaN(sec)||sec<0) return showMs ? '00:00.000' : '00:00';
-    const m = Math.floor(sec/60);
-    const s = sec % 60;
-    if(showMs) return String(m).padStart(2,'0')+':'+s.toFixed(3).padStart(6,'0');
-    return String(m).padStart(2,'0')+':'+Math.floor(s).toString().padStart(2,'0');
-  }
-
-  // ===== Auto-load audio folder via server API =====
-  async function loadAudioFolder(){
-    try{
-      const resp = await fetch('/api/audio-list');
-      if(!resp.ok) throw new Error('Failed to fetch audio list');
-      const list = await resp.json();
-      if(!list.length){
-        fileTree.innerHTML = '<div style="padding:20px;color:var(--text3);text-align:center">audio 文件夹为空<br>请放入音频文件后刷新页面</div>';
-        return;
-      }
-      audioFiles = list.map(item => ({
-        name: item.name,
-        baseName: item.name.replace(/\.[^.]+$/,''),
-        path: item.path,
-        url: '/audio/' + item.path
-      }));
-      buildFileTreeFromUrls();
-      showToast(`找到 ${audioFiles.length} 个音频文件`,'success');
-
-      // Auto-play first file
-      loadAudioFromUrl(audioFiles[0]);
-    }catch(e){
-      fileTree.innerHTML = '<div style="padding:20px;color:var(--text3);text-align:center">无法连接服务器<br>请通过 node server.js 启动服务</div>';
-      console.error(e);
-    }
-  }
-
-  function buildFileTreeFromUrls(){
-    const tree = {};
-    audioFiles.forEach(a => {
-      const parts = a.path.split('/').filter(Boolean);
-      let node = tree;
-      parts.forEach((p,i) => {
-        if(i === parts.length - 1){
-          if(!node.__files__) node.__files__ = [];
-          node.__files__.push(a);
-        } else {
-          if(!node[p]) node[p] = {};
-          node = node[p];
-        }
-      });
-    });
-
-    function renderTree(obj, indent=0){
-      let html = '';
-      const keys = Object.keys(obj).filter(k=>k!=='__files__').sort();
-      const files = obj.__files__ || [];
-
-      keys.forEach(k => {
-        const hasFiles = obj[k].__files__ && obj[k].__files__.length;
-        const hasFolders = Object.keys(obj[k]).some(x=>x!=='__files__');
-        if(hasFiles || hasFolders){
-          html += `<div class="tree-item tree-folder" data-folder="${k}">`;
-          html += `<span class="icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg></span><span class="name">${k}</span>`;
-          html += `</div>`;
-          html += renderTree(obj[k], indent+1);
-        }
-      });
-
-      files.forEach(f => {
-        html += `<div class="tree-item tree-audio" data-name="${f.name}">`;
-        html += `<span class="icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55C7.79 13 6 14.79 6 17s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg></span><span class="name">${f.name}</span>`;
-        html += `</div>`;
-      });
-
-      return html;
-    }
-
-    fileTree.innerHTML = renderTree(tree);
-
-    // Bind click
-    fileTree.querySelectorAll('.tree-audio').forEach(el => {
-      el.addEventListener('click', ()=>{
-        const name = el.dataset.name;
-        const entry = audioFiles.find(a=>a.name===name);
-        if(entry) loadAudioFromUrl(entry);
-      });
-    });
-  }
-
-  // Load audio from server URL
-  function loadAudioFromUrl(entry){
-    currentAudio = entry;
-    audio.src = entry.url;
-    audio.load();
-
-    emptyState.style.display = 'none';
-    playerContent.style.display = 'block';
-    trackTitle.textContent = entry.name;
-    trackPath.textContent = entry.path;
-    currentFileLabel.textContent = entry.path;
-    $('icon-play').style.display='block';
-    $('icon-pause').style.display='none';
-
-    fileTree.querySelectorAll('.tree-item').forEach(el=>el.classList.remove('active'));
-    const treeItem = fileTree.querySelector(`.tree-audio[data-name="${CSS.escape(entry.name)}"]`);
-    if(treeItem) treeItem.classList.add('active');
-
-    bookmarks = [];
-    // Auto-load bookmarks from server
-    fetchBookmark(entry);
-
-    audio.addEventListener('loadedmetadata', onMetadata, {once:true});
-  }
-
-  // Auto-load bookmark for current audio
-  async function fetchBookmark(entry){
-    try{
-      const resp = await fetch(`/api/bookmark/${encodeURIComponent(entry.name)}`);
-      if(resp.ok){
-        const data = await resp.json();
-        if(data.bookmarks && data.bookmarks.length){
-          bookmarks = data.bookmarks.sort((a,b)=>a.time-b.time);
-          renderBookmarks();
-          renderMarkers();
-          showToast(`自动加载 ${bookmarks.length} 个书签`,'success');
-          return;
-        }
-      }
-    }catch(e){}
-    renderBookmarks();
-    renderMarkers();
-  }
-
-  // Auto-load on startup
-  loadAudioFolder();
-
-  // ===== Build File Tree =====
-  function buildFileTree(){
-    // Group by folder hierarchy
-    const tree = {};
-    audioFiles.forEach(a => {
-      const parts = a.path.split('/');
-      let node = tree;
-      parts.forEach((p,i) => {
-        if(i === parts.length - 1){
-          if(!node.__files__) node.__files__ = [];
-          node.__files__.push(a);
-        } else {
-          if(!node[p]) node[p] = {};
-          node = node[p];
-        }
-      });
-    });
-
-    function renderTree(obj, indent=0){
-      let html = '';
-      const keys = Object.keys(obj).filter(k=>k!=='__files__').sort();
-      const files = obj.__files__ || [];
-
-      keys.forEach(k => {
-        const hasFiles = obj[k].__files__ && obj[k].__files__.length;
-        const hasFolders = Object.keys(obj[k]).some(x=>x!=='__files__');
-        if(hasFiles || hasFolders){
-          html += `<div class="tree-item tree-folder" data-folder="${k}">`;
-          html += `<span class="icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg></span><span class="name">${k}</span>`;
-          html += `</div>`;
-          html += renderTree(obj[k], indent+1);
-        }
-      });
-
-      files.forEach(f => {
-        html += `<div class="tree-item tree-audio" data-name="${f.name}">`;
-        html += `<span class="icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55C7.79 13 6 14.79 6 17s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg></span><span class="name">${f.name}</span>`;
-        html += `</div>`;
-      });
-
-      return html;
-    }
-
-    fileTree.innerHTML = renderTree(tree);
-
-    // Bind click
-    fileTree.querySelectorAll('.tree-audio').forEach(el => {
-      el.addEventListener('click', ()=>{
-        const name = el.dataset.name;
-        const entry = audioFiles.find(a=>a.name===name);
-        if(entry) loadAudio(entry);
-      });
-    });
-
-    fileTree.querySelectorAll('.tree-folder').forEach(el => {
-      el.addEventListener('click', ()=>{
-        el.classList.toggle('collapsed');
-      });
-    });
-  }
-
-  // ===== Load Audio =====
-  function loadAudio(entry){
-    currentAudio = entry;
-    const url = URL.createObjectURL(entry.file);
-    audio.src = url;
-    audio.load();
-
-    // UI
-    emptyState.style.display = 'none';
-    playerContent.style.display = 'block';
-    trackTitle.textContent = entry.name;
-    trackPath.textContent = entry.path;
-    currentFileLabel.textContent = entry.path;
-    $('icon-play').style.display='block';
-    $('icon-pause').style.display='none';
-
-    // Highlight tree
-    fileTree.querySelectorAll('.tree-item').forEach(el=>el.classList.remove('active'));
-    const treeItem = fileTree.querySelector(`.tree-audio[data-name="${CSS.escape(entry.name)}"]`);
-    if(treeItem) treeItem.classList.add('active');
-
-    // Reset bookmarks for this file
-    bookmarks = [];
-    // Try auto-load json
-    autoLoadBookmarks(entry);
-
-    audio.addEventListener('loadedmetadata', onMetadata, {once:true});
-  }
-
-  function onMetadata(){
-    timeTotal.textContent = formatTime(audio.duration);
-    renderBookmarks();
-  }
-
-  // ===== Playback Controls =====
-  btnPlay.addEventListener('click', togglePlay);
-  audio.addEventListener('play', ()=>{
-    $('icon-play').style.display='none';
-    $('icon-pause').style.display='block';
-  });
-  audio.addEventListener('pause', ()=>{
-    $('icon-play').style.display='block';
-    $('icon-pause').style.display='none';
-  });
-
-  function togglePlay(){
-    if(!audio.src) return;
-    if(audio.paused) audio.play(); else audio.pause();
-  }
-
-  $('btn-prev').addEventListener('click', ()=>{ if(audio.src) audio.currentTime = Math.max(0, audio.currentTime-10); });
-  $('btn-next').addEventListener('click', ()=>{ if(audio.src) audio.currentTime = Math.min(audio.duration||0, audio.currentTime+10); });
-
-  // Speed buttons
-  document.querySelectorAll('.speed-btn').forEach(btn=>{
-    btn.addEventListener('click', ()=> setSpeed(parseFloat(btn.dataset.speed)));
-  });
-
-  function setSpeed(rate){
-    audio.playbackRate = rate;
-    document.querySelectorAll('.speed-btn').forEach(b=>{
-      b.classList.toggle('active', parseFloat(b.dataset.speed)===rate);
-    });
-  }
-
-  // ===== Progress Bar =====
-  function updateProgress(){
-    if(isDragging || !audio.duration) return;
-    const pct = (audio.currentTime / audio.duration)*100;
-    progressFill.style.width = pct+'%';
-    timeCurrent.textContent = formatTime(audio.currentTime);
-    requestAnimationFrame(updateProgress);
-  }
-  audio.addEventListener('play', ()=> requestAnimationFrame(updateProgress));
-  audio.addEventListener('timeupdate', ()=>{
-    if(!isDragging){
-      const pct = (audio.currentTime / audio.duration)*100;
-      progressFill.style.width = pct+'%';
-      timeCurrent.textContent = formatTime(audio.currentTime);
-    }
-  });
-
-  // Click/drag on progress bar
-  function seekFromEvent(e){
-    const rect = progressWrap.getBoundingClientRect();
-    const x = (e.clientX || e.touches?.[0]?.clientX || 0) - rect.left;
-    const pct = Math.max(0, Math.min(1, x/rect.width));
-    if(audio.duration) audio.currentTime = pct * audio.duration;
-  }
-
-  progressWrap.addEventListener('mousedown', e=>{
-    isDragging=true;
-    seekFromEvent(e);
-  });
-  document.addEventListener('mousemove', e=>{ if(isDragging) seekFromEvent(e); });
-  document.addEventListener('mouseup', ()=>{ isDragging=false; });
-
-  progressWrap.addEventListener('touchstart', e=>{ isDragging=true; seekFromEvent(e); }, {passive:true});
-  document.addEventListener('touchmove', e=>{ if(isDragging) seekFromEvent(e); }, {passive:true});
-  document.addEventListener('touchend', ()=>{ isDragging=false; });
-
-  // ===== Bookmarks =====
-  addBookmarkBtn.addEventListener('click', addBookmark);
-
-  function addBookmark(){
-    if(!audio.src || !audio.duration) return;
-    const time = audio.currentTime;
-    const exists = bookmarks.find(b=>Math.abs(b.time-time)<0.1);
-    if(exists){
-      showToast('该时间点已有书签','info');
-      return;
-    }
-    bookmarks.push({time, note:''});
-    bookmarks.sort((a,b)=>a.time-b.time);
-    renderBookmarks();
-    renderMarkers();
-    showToast(`书签已添加 ${formatTime(time)}`,'success');
-  }
-
-  function renderBookmarks(){
-    bookmarkCount.textContent = bookmarks.length;
-    if(!bookmarks.length){
-      bookmarksList.innerHTML = '<div class="no-bookmarks">暂无书签，点击按钮添加</div>';
-      return;
-    }
-    bookmarksList.innerHTML = bookmarks.map((b,i)=>`
-      <div class="bookmark-card" data-idx="${i}">
-        <span class="time" data-idx="${i}">${formatTime(b.time)}</span>
-        <textarea class="note-area" data-idx="${i}" placeholder="添加笔记...">${b.note||''}</textarea>
-        <div class="actions">
-          <button class="jump" data-idx="${i}">⏯ 跳转</button>
-          <button class="del" data-idx="${i}">🗑 删除</button>
-        </div>
-      </div>
-    `).join('');
-
-    // Bind events
-    bookmarksList.querySelectorAll('.time, .jump').forEach(el=>{
-      el.addEventListener('click', ()=>{
-        const idx = parseInt(el.dataset.idx);
-        audio.currentTime = bookmarks[idx].time;
-      });
-    });
-    bookmarksList.querySelectorAll('.note-area').forEach(el=>{
-      el.addEventListener('input', ()=>{
-        const idx = parseInt(el.dataset.idx);
-        bookmarks[idx].note = el.value;
-      });
-    });
-    bookmarksList.querySelectorAll('.del').forEach(el=>{
-      el.addEventListener('click', ()=>{
-        const idx = parseInt(el.dataset.idx);
-        bookmarks.splice(idx,1);
-        renderBookmarks();
-        renderMarkers();
-        showToast('书签已删除','info');
-      });
-    });
-  }
-
-  function renderMarkers(){
-    // Remove old markers
-    progressFill.parentElement.querySelectorAll('.bookmark-marker').forEach(m=>m.remove());
-    if(!audio.duration) return;
-    bookmarks.forEach(b=>{
-      const pct = (b.time / audio.duration)*100;
-      const marker = document.createElement('div');
-      marker.className = 'bookmark-marker';
-      marker.style.left = pct+'%';
-      marker.title = formatTime(b.time) + (b.note?'\n'+b.note:'');
-      marker.addEventListener('click', ()=>{
-        audio.currentTime = b.time;
-      });
-      progressFill.parentElement.appendChild(marker);
-    });
-  }
-
-  audio.addEventListener('loadedmetadata', ()=> setTimeout(renderMarkers, 100));
-
-  // ===== Save / Load Bookmarks =====
-  saveBookmarksBtn.addEventListener('click', saveBookmarksJSON);
-  loadBookmarksBtn.addEventListener('click', loadBookmarksJSON);
-
-  function getJSONFileName(){
-    if(!currentAudio) return 'bookmarks.json';
-    return currentAudio.baseName + '.json';
-  }
-
-  function saveBookmarksJSON(){
-    if(!bookmarks.length){
-      showToast('没有书签可保存','info');
-      return;
-    }
-    const data = {
-      fileName: currentAudio?.name || '',
-      bookmarks: bookmarks.map(b=>({time: b.time, note: b.note}))
-    };
-    fetch('/api/bookmark', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify(data)
-    })
-    .then(r=>r.json())
-    .then(res=>{
-      if(res.ok) showToast(`书签已保存到 ${getJSONFileName()}`,'success');
-      else showToast('保存失败: '+(res.error||''),'info');
-    })
-    .catch(e=> showToast('保存失败: '+e.message,'info'));
-  }
-
-  function loadBookmarksJSON(){
-    if(!currentAudio){
-      showToast('请先选择音频文件','info');
-      return;
-    }
-    fetchBookmark(currentAudio);
-  }
-
-  // ===== Auto-load bookmarks =====
-  function autoLoadBookmarks(entry){
-    // We can't directly read the filesystem for the json, but we let the user know
-    // Actually with the file API we can't auto-scan, so we rely on manual load
-    // But we can try to load if they have a json with same name in the same folder
-    // Since we can't read folder contents beyond the input, we skip auto-load
-    // and just inform user to manually load
-  }
-
-  // ===== Keyboard shortcuts =====
-  document.addEventListener('keydown', e=>{
-    if(e.target.tagName==='TEXTAREA'||e.target.tagName==='INPUT') return;
-    switch(e.code){
-      case 'Space':
-        e.preventDefault();
-        togglePlay();
-        break;
-      case 'ArrowLeft':
-        if(audio.src){ audio.currentTime = Math.max(0, audio.currentTime-5); }
-        break;
-      case 'ArrowRight':
-        if(audio.src){ audio.currentTime = Math.min(audio.duration||0, audio.currentTime+5); }
-        break;
-    }
-  });
-
-  // ===== Handle audio end =====
-  audio.addEventListener('ended', ()=>{
-    btnPlay.textContent = '▶';
-    progressFill.style.width = '100%';
-  });
-
-})();
-</script>
+<!-- Bootstrap -->
+<script src="/js/app-boot.js"></script>
 </body>
 </html>

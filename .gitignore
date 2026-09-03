@@ -1,5 +1,5 @@
 audio/
-bookmarks/
+/bookmarks/
 config.json
 node_modules/
 *.log

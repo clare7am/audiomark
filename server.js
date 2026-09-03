@@ -5,7 +5,7 @@ const PORT = 8766;
 
 // Config file
 const CONFIG_PATH = path.join(__dirname, 'config.json');
-let config = { audioDir: 'D:\\church\\audio', bookmarkDir: 'D:\\church\\bookmarks' };
+let config = { audioDir: 'D:\\church\\audio', bookmarkDir: 'D:\\church\\bookmarks', modules: ['player', 'bookmarks', 'file-tree', 'settings'] };
 if (fs.existsSync(CONFIG_PATH)) {
   try { config = { ...config, ...JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf-8')) }; } catch(e) {}
 }
@@ -72,7 +72,7 @@ const server = http.createServer((req, res) => {
   // API: get config
   if (urlPath === '/api/config') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ audioDir: config.audioDir, bookmarkDir: config.bookmarkDir }));
+    res.end(JSON.stringify({ audioDir: config.audioDir, bookmarkDir: config.bookmarkDir, modules: config.modules }));
     return;
   }
 
@@ -85,9 +85,10 @@ const server = http.createServer((req, res) => {
         const data = JSON.parse(body);
         if (data.audioDir) config.audioDir = path.resolve(data.audioDir);
         if (data.bookmarkDir) config.bookmarkDir = path.resolve(data.bookmarkDir);
-        fs.writeFileSync(CONFIG_PATH, JSON.stringify({ audioDir: config.audioDir, bookmarkDir: config.bookmarkDir }, null, 2));
+        if (data.modules) config.modules = data.modules;
+        fs.writeFileSync(CONFIG_PATH, JSON.stringify({ audioDir: config.audioDir, bookmarkDir: config.bookmarkDir, modules: config.modules }, null, 2));
         res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ ok: true, audioDir: config.audioDir, bookmarkDir: config.bookmarkDir }));
+        res.end(JSON.stringify({ ok: true, audioDir: config.audioDir, bookmarkDir: config.bookmarkDir, modules: config.modules }));
       } catch (e) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: e.message }));
