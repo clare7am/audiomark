@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AudioMark - 音频书签播放器</title>
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --bg:#1a1a2e;--bg2:#16213e;--bg3:#0f3460;
+    --accent:#e94560;--accent2:#533483;
+    --text:#eee;--text2:#aaa;--text3:#666;
+    --border:#2a2a4a;--card:#1e1e3a;--hover:#2a2a5a;
+    --radius:8px;--shadow:0 2px 12px rgba(0,0,0,.4);
+  }
+  html,body{height:100%;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);font-size:14px}
+  body{display:flex;flex-direction:column;overflow:hidden}
+
+  /* Header */
+  .header{display:flex;align-items:center;gap:16px;padding:12px 20px;background:var(--bg2);border-bottom:1px solid var(--border);flex-shrink:0}
+  .header h1{font-size:18px;font-weight:600;letter-spacing:1px;color:var(--accent);white-space:nowrap}
+  .header h1 span{color:var(--text2);font-weight:400;font-size:13px;margin-left:8px}
+  #folder-btn{background:var(--bg3);color:var(--text);border:1px solid var(--border);padding:8px 16px;border-radius:var(--radius);cursor:pointer;font-size:13px;transition:all .2s}
+  #folder-btn:hover{background:var(--accent);border-color:var(--accent)}
+  #folder-btn svg{vertical-align:middle;margin-right:6px}
+  .current-file{color:var(--text2);font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+
+  /* Main Layout */
+  .main{display:flex;flex:1;overflow:hidden}
+
+  /* Sidebar - File Tree */
+  .sidebar{width:260px;min-width:200px;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0}
+  .sidebar-header{padding:10px 14px;font-size:12px;color:var(--text2);text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid var(--border)}
+  .file-tree{flex:1;overflow-y:auto;padding:8px 0}
+  .file-tree::-webkit-scrollbar{width:6px}
+  .file-tree::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+  .tree-item{display:flex;align-items:center;padding:6px 14px;cursor:pointer;transition:background .15s;user-select:none;gap:6px}
+  .tree-item:hover{background:var(--hover)}
+  .tree-item.active{background:var(--bg3);color:var(--accent)}
+  .tree-item.folder{color:var(--text2)}
+  .tree-item .icon{width:16px;text-align:center;flex-shrink:0;font-size:12px}
+  .tree-item .name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .tree-folder .icon{color:var(--accent2)}
+  .tree-audio .icon{color:var(--accent)}
+  .tree-indent{display:inline-block;width:16px;flex-shrink:0}
+
+  /* Player Area */
+  .player-area{flex:1;display:flex;flex-direction:column;padding:24px;overflow-y:auto;gap:20px}
+
+  /* Now Playing */
+  .now-playing{text-align:center;padding:20px 0}
+  .now-playing .title{font-size:20px;font-weight:600;margin-bottom:4px}
+  .now-playing .subtitle{font-size:13px;color:var(--text2)}
+
+  /* Progress Bar */
+  .progress-container{background:var(--card);border-radius:var(--radius);padding:16px 20px;box-shadow:var(--shadow)}
+  .time-display{display:flex;justify-content:space-between;font-size:12px;color:var(--text2);margin-bottom:8px;font-family:'Consolas',monospace}
+  .progress-bar-wrap{position:relative;height:32px;display:flex;align-items:center;cursor:pointer}
+  .progress-bar{width:100%;height:6px;background:var(--border);border-radius:3px;position:relative;overflow:visible}
+  .progress-fill{height:100%;background:linear-gradient(90deg,var(--accent2),var(--accent));border-radius:3px;width:0%;transition:width .1s linear;position:relative}
+  .progress-fill::after{content:'';position:absolute;right:-6px;top:50%;transform:translateY(-50%);width:14px;height:14px;background:var(--accent);border-radius:50%;box-shadow:0 0 6px var(--accent)}
+  .bookmark-marker{position:absolute;top:50%;transform:translate(-50%,-50%);width:10px;height:10px;background:var(--accent2);border:2px solid var(--accent);border-radius:50%;z-index:2;cursor:pointer;transition:transform .15s}
+  .bookmark-marker:hover{transform:translate(-50%,-50%) scale(1.3)}
+
+  /* Controls */
+  .controls{display:flex;justify-content:center;align-items:center;gap:12px;padding:16px 0;flex-wrap:wrap}
+  .ctrl-btn{background:var(--card);border:1px solid var(--border);color:var(--text);width:44px;height:44px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;font-size:18px}
+  .ctrl-btn:hover{background:var(--bg3);border-color:var(--accent)}
+  .ctrl-btn.primary{width:56px;height:56px;background:var(--accent);border-color:var(--accent);font-size:22px}
+  .ctrl-btn.primary:hover{background:#d63a52}
+  .ctrl-btn.active{background:var(--accent);border-color:var(--accent);color:#fff}
+
+  /* Speed Controls */
+  .speed-group{display:flex;align-items:center;gap:6px;margin-left:20px}
+  .speed-group label{color:var(--text2);font-size:12px}
+  .speed-btn{background:var(--card);border:1px solid var(--border);color:var(--text2);padding:4px 10px;border-radius:4px;cursor:pointer;font-size:12px;transition:all .15s}
+  .speed-btn:hover{border-color:var(--accent);color:var(--text)}
+  .speed-btn.active{background:var(--accent);border-color:var(--accent);color:#fff}
+
+  /* Bookmarks Section */
+  .bookmarks-section{background:var(--card);border-radius:var(--radius);padding:16px 20px;box-shadow:var(--shadow)}
+  .bookmarks-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+  .bookmarks-header h3{font-size:15px;font-weight:600}
+  #add-bookmark{background:var(--accent);color:#fff;border:none;padding:8px 14px;border-radius:var(--radius);cursor:pointer;font-size:13px;transition:all .2s;display:flex;align-items:center;gap:6px}
+  #add-bookmark:hover{background:#d63a52}
+  .bookmarks-list{max-height:300px;overflow-y:auto;display:flex;flex-direction:column;gap:8px}
+  .bookmarks-list::-webkit-scrollbar{width:6px}
+  .bookmarks-list::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+  .bookmark-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:12px;transition:border-color .15s}
+  .bookmark-card:hover{border-color:var(--accent)}
+  .bookmark-card .time{font-family:'Consolas',monospace;font-size:14px;color:var(--accent);font-weight:600;cursor:pointer}
+  .bookmark-card .time:hover{text-decoration:underline}
+  .bookmark-card .note-area{width:100%;margin-top:8px;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:8px;border-radius:4px;font-size:13px;resize:vertical;min-height:40px;font-family:inherit}
+  .bookmark-card .note-area:focus{outline:none;border-color:var(--accent)}
+  .bookmark-card .actions{display:flex;justify-content:flex-end;gap:8px;margin-top:8px}
+  .bookmark-card .actions button{background:none;border:none;color:var(--text2);cursor:pointer;font-size:12px;padding:4px 8px;border-radius:4px;transition:all .15s}
+  .bookmark-card .actions button:hover{background:var(--hover);color:var(--text)}
+  .bookmark-card .actions .del:hover{color:var(--accent)}
+  .no-bookmarks{text-align:center;color:var(--text3);padding:20px;font-size:13px}
+
+  /* Save/Export */
+  .save-bar{display:flex;justify-content:flex-end;gap:8px;padding:8px 0}
+  .save-btn{background:var(--bg3);color:var(--text);border:1px solid var(--border);padding:8px 16px;border-radius:var(--radius);cursor:pointer;font-size:13px;transition:all .2s}
+  .save-btn:hover{background:var(--accent);border-color:var(--accent)}
+
+  /* Empty State */
+  .empty-state{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--text3);gap:16px;text-align:center;padding:40px}
+  .empty-state svg{opacity:.3}
+  .empty-state p{font-size:15px}
+  .empty-state .hint{font-size:13px;color:var(--text3)}
+
+  /* Toast */
+  .toast{position:fixed;bottom:24px;right:24px;background:var(--bg3);color:var(--text);padding:12px 20px;border-radius:var(--radius);box-shadow:var(--shadow);transform:translateY(100px);opacity:0;transition:all .3s;z-index:100;font-size:13px}
+  .toast.show{transform:translateY(0);opacity:1}
+  .toast.success{border-left:4px solid #4ade80}
+  .toast.info{border-left:4px solid var(--accent)}
+
+  /* Responsive */
+  @media(max-width:768px){
+    .sidebar{width:200px;min-width:160px}
+    .controls{gap:8px}
+    .speed-group{margin-left:0}
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>🎵 AudioMark <span>音频书签播放器</span></h1>
+  <button id="folder-btn">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+    选择文件夹
+  </button>
+  <input type="file" id="folder-input" webkitdirectory multiple accept="audio/*" hidden>
+  <div class="current-file" id="current-file">未选择音频</div>
+</div>
+
+<div class="main">
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="sidebar-header">文件列表</div>
+    <div class="file-tree" id="file-tree">
+      <div class="empty-state" style="padding:30px 16px">
+        <p>点击左侧按钮<br>选择音频文件夹</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Player -->
+  <div class="player-area" id="player-area">
+    <div class="empty-state" id="empty-state">
+      <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8" fill="currentColor"/></svg>
+      <p>选择音频开始播放</p>
+      <span class="hint">支持 MP3 / WAV / OGG / FLAC / AAC</span>
+    </div>
+
+    <div id="player-content" style="display:none">
+      <div class="now-playing">
+        <div class="title" id="track-title">-</div>
+        <div class="subtitle" id="track-path">-</div>
+      </div>
+
+      <!-- Progress -->
+      <div class="progress-container">
+        <div class="time-display">
+          <span id="time-current">00:00.000</span>
+          <span id="time-total">00:00.000</span>
+        </div>
+        <div class="progress-bar-wrap" id="progress-wrap">
+          <div class="progress-bar">
+            <div class="progress-fill" id="progress-fill"></div>
+            <!-- bookmark markers injected here -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Controls -->
+      <div class="controls">
+        <button class="ctrl-btn" id="btn-slow2" title="0.5x">🐢</button>
+        <button class="ctrl-btn" id="btn-slow1" title="0.75x">🐌</button>
+        <button class="ctrl-btn" id="btn-prev" title="后退10秒">⏪</button>
+        <button class="ctrl-btn primary" id="btn-play" title="播放/暂停">▶</button>
+        <button class="ctrl-btn" id="btn-next" title="前进10秒">⏩</button>
+        <button class="ctrl-btn" id="btn-fast1" title="1.5x">🏃</button>
+        <button class="ctrl-btn" id="btn-fast2" title="2x">🚀</button>
+        <div class="speed-group">
+          <label>速度:</label>
+          <button class="speed-btn active" data-speed="1">1x</button>
+          <button class="speed-btn" data-speed="1.5">1.5x</button>
+          <button class="speed-btn" data-speed="2">2x</button>
+          <button class="speed-btn" data-speed="0.75">0.75x</button>
+          <button class="speed-btn" data-speed="0.5">0.5x</button>
+        </div>
+      </div>
+
+      <!-- Bookmarks -->
+      <div class="bookmarks-section">
+        <div class="bookmarks-header">
+          <h3>📑 书签 (<span id="bookmark-count">0</span>)</h3>
+          <button id="add-bookmark">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            添加书签
+          </button>
+        </div>
+        <div class="bookmarks-list" id="bookmarks-list">
+          <div class="no-bookmarks">暂无书签，点击按钮添加</div>
+        </div>
+        <div class="save-bar">
+          <button class="save-btn" id="save-bookmarks">💾 保存书签</button>
+          <button class="save-btn" id="load-bookmarks">🔄 重新加载书签</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<audio id="audio" preload="auto"></audio>
+
+<script>
+(function(){
+  'use strict';
+
+  // ===== State =====
+  const audio = document.getElementById('audio');
+  let audioFiles = [];       // [{name, path, file, baseName}]
+  let bookmarks = [];        // [{time, note}]
+  let currentAudio = null;   // current playing audio entry
+  let isDragging = false;
+
+  // ===== DOM =====
+  const $ = id => document.getElementById(id);
+  const folderBtn = $('folder-btn');
+  const folderInput = $('folder-input');
+  const currentFileLabel = $('current-file');
+  const fileTree = $('file-tree');
+  const emptyState = $('empty-state');
+  const playerContent = $('player-content');
+  const trackTitle = $('track-title');
+  const trackPath = $('track-path');
+  const progressWrap = $('progress-wrap');
+  const progressFill = $('progress-fill');
+  const timeCurrent = $('time-current');
+  const timeTotal = $('time-total');
+  const btnPlay = $('btn-play');
+  const btnPrev = $('btn-prev');
+  const btnNext = $('btn-next');
+  const bookmarksList = $('bookmarks-list');
+  const bookmarkCount = $('bookmark-count');
+  const addBookmarkBtn = $('add-bookmark');
+  const saveBookmarksBtn = $('save-bookmarks');
+  const loadBookmarksBtn = $('load-bookmarks');
+  const toast = $('toast');
+
+  // ===== Audio extensions =====
+  const AUDIO_EXT = new Set(['.mp3','.wav','.ogg','.flac','.aac','.m4a','.wma','.webm','.opus']);
+
+  // ===== Toast =====
+  let toastTimer;
+  function showToast(msg, type='info'){
+    clearTimeout(toastTimer);
+    toast.textContent = msg;
+    toast.className = 'toast show ' + type;
+    toastTimer = setTimeout(()=> toast.className='toast', 2500);
+  }
+
+  // ===== Format time =====
+  function formatTime(sec){
+    if(isNaN(sec)||sec<0) return '00:00.000';
+    const m = Math.floor(sec/60);
+    const s = sec % 60;
+    return String(m).padStart(2,'0')+':'+s.toFixed(3).padStart(6,'0');
+  }
+
+  // ===== Auto-load audio folder via server API =====
+  async function loadAudioFolder(){
+    try{
+      const resp = await fetch('/api/audio-list');
+      if(!resp.ok) throw new Error('Failed to fetch audio list');
+      const list = await resp.json();
+      if(!list.length){
+        fileTree.innerHTML = '<div style="padding:20px;color:var(--text3);text-align:center">audio 文件夹为空<br>请放入音频文件后刷新页面</div>';
+        return;
+      }
+      audioFiles = list.map(item => ({
+        name: item.name,
+        baseName: item.name.replace(/\.[^.]+$/,''),
+        path: item.path,
+        url: '/audio/' + item.path
+      }));
+      buildFileTreeFromUrls();
+      showToast(`找到 ${audioFiles.length} 个音频文件`,'success');
+
+      // Auto-play first file
+      loadAudioFromUrl(audioFiles[0]);
+    }catch(e){
+      fileTree.innerHTML = '<div style="padding:20px;color:var(--text3);text-align:center">无法连接服务器<br>请通过 node server.js 启动服务</div>';
+      console.error(e);
+    }
+  }
+
+  function buildFileTreeFromUrls(){
+    const tree = {};
+    audioFiles.forEach(a => {
+      const parts = a.path.split('/').filter(Boolean);
+      let node = tree;
+      parts.forEach((p,i) => {
+        if(i === parts.length - 1){
+          if(!node.__files__) node.__files__ = [];
+          node.__files__.push(a);
+        } else {
+          if(!node[p]) node[p] = {};
+          node = node[p];
+        }
+      });
+    });
+
+    function renderTree(obj, indent=0){
+      let html = '';
+      const keys = Object.keys(obj).filter(k=>k!=='__files__').sort();
+      const files = obj.__files__ || [];
+
+      keys.forEach(k => {
+        const hasFiles = obj[k].__files__ && obj[k].__files__.length;
+        const hasFolders = Object.keys(obj[k]).some(x=>x!=='__files__');
+        if(hasFiles || hasFolders){
+          html += `<div class="tree-item tree-folder" data-folder="${k}">`;
+          html += `<span class="icon">📁</span><span class="name">${k}</span>`;
+          html += `</div>`;
+          html += renderTree(obj[k], indent+1);
+        }
+      });
+
+      files.forEach(f => {
+        html += `<div class="tree-item tree-audio" data-name="${f.name}">`;
+        html += `<span class="icon">🎵</span><span class="name">${f.name}</span>`;
+        html += `</div>`;
+      });
+
+      return html;
+    }
+
+    fileTree.innerHTML = renderTree(tree);
+
+    // Bind click
+    fileTree.querySelectorAll('.tree-audio').forEach(el => {
+      el.addEventListener('click', ()=>{
+        const name = el.dataset.name;
+        const entry = audioFiles.find(a=>a.name===name);
+        if(entry) loadAudioFromUrl(entry);
+      });
+    });
+  }
+
+  // Load audio from server URL
+  function loadAudioFromUrl(entry){
+    currentAudio = entry;
+    audio.src = entry.url;
+    audio.load();
+
+    emptyState.style.display = 'none';
+    playerContent.style.display = 'block';
+    trackTitle.textContent = entry.name;
+    trackPath.textContent = entry.path;
+    currentFileLabel.textContent = entry.path;
+    btnPlay.textContent = '▶';
+
+    fileTree.querySelectorAll('.tree-item').forEach(el=>el.classList.remove('active'));
+    const treeItem = fileTree.querySelector(`.tree-audio[data-name="${CSS.escape(entry.name)}"]`);
+    if(treeItem) treeItem.classList.add('active');
+
+    bookmarks = [];
+    // Auto-load bookmarks from server
+    fetchBookmark(entry);
+
+    audio.addEventListener('loadedmetadata', onMetadata, {once:true});
+  }
+
+  // Auto-load bookmark for current audio
+  async function fetchBookmark(entry){
+    try{
+      const resp = await fetch(`/api/bookmark/${encodeURIComponent(entry.name)}`);
+      if(resp.ok){
+        const data = await resp.json();
+        if(data.bookmarks && data.bookmarks.length){
+          bookmarks = data.bookmarks.sort((a,b)=>a.time-b.time);
+          renderBookmarks();
+          renderMarkers();
+          showToast(`自动加载 ${bookmarks.length} 个书签`,'success');
+          return;
+        }
+      }
+    }catch(e){}
+    renderBookmarks();
+    renderMarkers();
+  }
+
+  // Hide the manual folder button since we auto-load
+  folderBtn.style.display = 'none';
+
+  // Auto-load on startup
+  loadAudioFolder();
+
+  // ===== Build File Tree =====
+  function buildFileTree(){
+    // Group by folder hierarchy
+    const tree = {};
+    audioFiles.forEach(a => {
+      const parts = a.path.split('/');
+      let node = tree;
+      parts.forEach((p,i) => {
+        if(i === parts.length - 1){
+          if(!node.__files__) node.__files__ = [];
+          node.__files__.push(a);
+        } else {
+          if(!node[p]) node[p] = {};
+          node = node[p];
+        }
+      });
+    });
+
+    function renderTree(obj, indent=0){
+      let html = '';
+      const keys = Object.keys(obj).filter(k=>k!=='__files__').sort();
+      const files = obj.__files__ || [];
+
+      keys.forEach(k => {
+        const hasFiles = obj[k].__files__ && obj[k].__files__.length;
+        const hasFolders = Object.keys(obj[k]).some(x=>x!=='__files__');
+        if(hasFiles || hasFolders){
+          html += `<div class="tree-item tree-folder" data-folder="${k}">`;
+          html += `<span class="icon">📁</span><span class="name">${k}</span>`;
+          html += `</div>`;
+          html += renderTree(obj[k], indent+1);
+        }
+      });
+
+      files.forEach(f => {
+        html += `<div class="tree-item tree-audio" data-name="${f.name}">`;
+        html += `<span class="icon">🎵</span><span class="name">${f.name}</span>`;
+        html += `</div>`;
+      });
+
+      return html;
+    }
+
+    fileTree.innerHTML = renderTree(tree);
+
+    // Bind click
+    fileTree.querySelectorAll('.tree-audio').forEach(el => {
+      el.addEventListener('click', ()=>{
+        const name = el.dataset.name;
+        const entry = audioFiles.find(a=>a.name===name);
+        if(entry) loadAudio(entry);
+      });
+    });
+
+    fileTree.querySelectorAll('.tree-folder').forEach(el => {
+      el.addEventListener('click', ()=>{
+        el.classList.toggle('collapsed');
+      });
+    });
+  }
+
+  // ===== Load Audio =====
+  function loadAudio(entry){
+    currentAudio = entry;
+    const url = URL.createObjectURL(entry.file);
+    audio.src = url;
+    audio.load();
+
+    // UI
+    emptyState.style.display = 'none';
+    playerContent.style.display = 'block';
+    trackTitle.textContent = entry.name;
+    trackPath.textContent = entry.path;
+    currentFileLabel.textContent = entry.path;
+    btnPlay.textContent = '▶';
+
+    // Highlight tree
+    fileTree.querySelectorAll('.tree-item').forEach(el=>el.classList.remove('active'));
+    const treeItem = fileTree.querySelector(`.tree-audio[data-name="${CSS.escape(entry.name)}"]`);
+    if(treeItem) treeItem.classList.add('active');
+
+    // Reset bookmarks for this file
+    bookmarks = [];
+    // Try auto-load json
+    autoLoadBookmarks(entry);
+
+    audio.addEventListener('loadedmetadata', onMetadata, {once:true});
+  }
+
+  function onMetadata(){
+    timeTotal.textContent = formatTime(audio.duration);
+    renderBookmarks();
+  }
+
+  // ===== Playback Controls =====
+  btnPlay.addEventListener('click', togglePlay);
+  audio.addEventListener('play', ()=> btnPlay.textContent='⏸');
+  audio.addEventListener('pause', ()=> btnPlay.textContent='▶');
+
+  function togglePlay(){
+    if(!audio.src) return;
+    if(audio.paused) audio.play(); else audio.pause();
+  }
+
+  $('btn-prev').addEventListener('click', ()=>{ if(audio.src) audio.currentTime = Math.max(0, audio.currentTime-10); });
+  $('btn-next').addEventListener('click', ()=>{ if(audio.src) audio.currentTime = Math.min(audio.duration||0, audio.currentTime+10); });
+
+  // Speed buttons
+  const speedBtns = document.querySelectorAll('.speed-btn, .ctrl-btn[id^="btn-slow"], .ctrl-btn[id^="btn-fast"]');
+  const speedMap = {
+    'btn-slow2': 0.5, 'btn-slow1': 0.75,
+    'btn-fast1': 1.5, 'btn-fast2': 2,
+  };
+
+  // Speed button clicks
+  $('btn-slow2').addEventListener('click', ()=> setSpeed(0.5));
+  $('btn-slow1').addEventListener('click', ()=> setSpeed(0.75));
+  $('btn-fast1').addEventListener('click', ()=> setSpeed(1.5));
+  $('btn-fast2').addEventListener('click', ()=> setSpeed(2));
+
+  document.querySelectorAll('.speed-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=> setSpeed(parseFloat(btn.dataset.speed)));
+  });
+
+  function setSpeed(rate){
+    audio.playbackRate = rate;
+    // Update active states
+    document.querySelectorAll('.speed-btn').forEach(b=>{
+      b.classList.toggle('active', parseFloat(b.dataset.speed)===rate);
+    });
+    ['btn-slow2','btn-slow1','btn-fast1','btn-fast2'].forEach(id=>{
+      $(id).classList.toggle('active', speedMap[id]===rate);
+    });
+    if(rate===1){
+      document.querySelectorAll('.speed-btn').forEach(b=>{
+        if(parseFloat(b.dataset.speed)===1) b.classList.add('active');
+      });
+    }
+  }
+
+  // ===== Progress Bar =====
+  function updateProgress(){
+    if(isDragging || !audio.duration) return;
+    const pct = (audio.currentTime / audio.duration)*100;
+    progressFill.style.width = pct+'%';
+    timeCurrent.textContent = formatTime(audio.currentTime);
+    requestAnimationFrame(updateProgress);
+  }
+  audio.addEventListener('play', ()=> requestAnimationFrame(updateProgress));
+  audio.addEventListener('timeupdate', ()=>{
+    if(!isDragging){
+      const pct = (audio.currentTime / audio.duration)*100;
+      progressFill.style.width = pct+'%';
+      timeCurrent.textContent = formatTime(audio.currentTime);
+    }
+  });
+
+  // Click/drag on progress bar
+  function seekFromEvent(e){
+    const rect = progressWrap.getBoundingClientRect();
+    const x = (e.clientX || e.touches?.[0]?.clientX || 0) - rect.left;
+    const pct = Math.max(0, Math.min(1, x/rect.width));
+    if(audio.duration) audio.currentTime = pct * audio.duration;
+  }
+
+  progressWrap.addEventListener('mousedown', e=>{
+    isDragging=true;
+    seekFromEvent(e);
+  });
+  document.addEventListener('mousemove', e=>{ if(isDragging) seekFromEvent(e); });
+  document.addEventListener('mouseup', ()=>{ isDragging=false; });
+
+  progressWrap.addEventListener('touchstart', e=>{ isDragging=true; seekFromEvent(e); }, {passive:true});
+  document.addEventListener('touchmove', e=>{ if(isDragging) seekFromEvent(e); }, {passive:true});
+  document.addEventListener('touchend', ()=>{ isDragging=false; });
+
+  // ===== Bookmarks =====
+  addBookmarkBtn.addEventListener('click', addBookmark);
+
+  function addBookmark(){
+    if(!audio.src || !audio.duration) return;
+    const time = audio.currentTime;
+    const exists = bookmarks.find(b=>Math.abs(b.time-time)<0.1);
+    if(exists){
+      showToast('该时间点已有书签','info');
+      return;
+    }
+    bookmarks.push({time, note:''});
+    bookmarks.sort((a,b)=>a.time-b.time);
+    renderBookmarks();
+    renderMarkers();
+    showToast(`书签已添加 ${formatTime(time)}`,'success');
+  }
+
+  function renderBookmarks(){
+    bookmarkCount.textContent = bookmarks.length;
+    if(!bookmarks.length){
+      bookmarksList.innerHTML = '<div class="no-bookmarks">暂无书签，点击按钮添加</div>';
+      return;
+    }
+    bookmarksList.innerHTML = bookmarks.map((b,i)=>`
+      <div class="bookmark-card" data-idx="${i}">
+        <span class="time" data-idx="${i}">${formatTime(b.time)}</span>
+        <textarea class="note-area" data-idx="${i}" placeholder="添加笔记...">${b.note||''}</textarea>
+        <div class="actions">
+          <button class="jump" data-idx="${i}">⏯ 跳转</button>
+          <button class="del" data-idx="${i}">🗑 删除</button>
+        </div>
+      </div>
+    `).join('');
+
+    // Bind events
+    bookmarksList.querySelectorAll('.time, .jump').forEach(el=>{
+      el.addEventListener('click', ()=>{
+        const idx = parseInt(el.dataset.idx);
+        audio.currentTime = bookmarks[idx].time;
+      });
+    });
+    bookmarksList.querySelectorAll('.note-area').forEach(el=>{
+      el.addEventListener('input', ()=>{
+        const idx = parseInt(el.dataset.idx);
+        bookmarks[idx].note = el.value;
+      });
+    });
+    bookmarksList.querySelectorAll('.del').forEach(el=>{
+      el.addEventListener('click', ()=>{
+        const idx = parseInt(el.dataset.idx);
+        bookmarks.splice(idx,1);
+        renderBookmarks();
+        renderMarkers();
+        showToast('书签已删除','info');
+      });
+    });
+  }
+
+  function renderMarkers(){
+    // Remove old markers
+    progressFill.parentElement.querySelectorAll('.bookmark-marker').forEach(m=>m.remove());
+    if(!audio.duration) return;
+    bookmarks.forEach(b=>{
+      const pct = (b.time / audio.duration)*100;
+      const marker = document.createElement('div');
+      marker.className = 'bookmark-marker';
+      marker.style.left = pct+'%';
+      marker.title = formatTime(b.time) + (b.note?'\n'+b.note:'');
+      marker.addEventListener('click', ()=>{
+        audio.currentTime = b.time;
+      });
+      progressFill.parentElement.appendChild(marker);
+    });
+  }
+
+  audio.addEventListener('loadedmetadata', ()=> setTimeout(renderMarkers, 100));
+
+  // ===== Save / Load Bookmarks =====
+  saveBookmarksBtn.addEventListener('click', saveBookmarksJSON);
+  loadBookmarksBtn.addEventListener('click', loadBookmarksJSON);
+
+  function getJSONFileName(){
+    if(!currentAudio) return 'bookmarks.json';
+    return currentAudio.baseName + '.json';
+  }
+
+  function saveBookmarksJSON(){
+    if(!bookmarks.length){
+      showToast('没有书签可保存','info');
+      return;
+    }
+    const data = {
+      fileName: currentAudio?.name || '',
+      bookmarks: bookmarks.map(b=>({time: b.time, note: b.note}))
+    };
+    fetch('/api/bookmark', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(data)
+    })
+    .then(r=>r.json())
+    .then(res=>{
+      if(res.ok) showToast(`书签已保存到 ${getJSONFileName()}`,'success');
+      else showToast('保存失败: '+(res.error||''),'info');
+    })
+    .catch(e=> showToast('保存失败: '+e.message,'info'));
+  }
+
+  function loadBookmarksJSON(){
+    if(!currentAudio){
+      showToast('请先选择音频文件','info');
+      return;
+    }
+    fetchBookmark(currentAudio);
+  }
+
+  // ===== Auto-load bookmarks =====
+  function autoLoadBookmarks(entry){
+    // We can't directly read the filesystem for the json, but we let the user know
+    // Actually with the file API we can't auto-scan, so we rely on manual load
+    // But we can try to load if they have a json with same name in the same folder
+    // Since we can't read folder contents beyond the input, we skip auto-load
+    // and just inform user to manually load
+  }
+
+  // ===== Keyboard shortcuts =====
+  document.addEventListener('keydown', e=>{
+    if(e.target.tagName==='TEXTAREA'||e.target.tagName==='INPUT') return;
+    switch(e.code){
+      case 'Space':
+        e.preventDefault();
+        togglePlay();
+        break;
+      case 'ArrowLeft':
+        if(audio.src){ audio.currentTime = Math.max(0, audio.currentTime-5); }
+        break;
+      case 'ArrowRight':
+        if(audio.src){ audio.currentTime = Math.min(audio.duration||0, audio.currentTime+5); }
+        break;
+    }
+  });
+
+  // ===== Handle audio end =====
+  audio.addEventListener('ended', ()=>{
+    btnPlay.textContent = '▶';
+    progressFill.style.width = '100%';
+  });
+
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,5 @@
+audio/
+bookmarks/
+node_modules/
+*.log
+.qwen/
