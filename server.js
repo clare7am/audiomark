@@ -2,8 +2,18 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const PORT = 8766;
-const AUDIO_DIR = path.join(__dirname, 'audio');
-const BOOKMARKS_DIR = path.join(__dirname, 'bookmarks');
+
+// Config file
+const CONFIG_PATH = path.join(__dirname, 'config.json');
+let config = { audioDir: 'D:\\church\\audio', bookmarkDir: 'D:\\church\\bookmarks' };
+if (fs.existsSync(CONFIG_PATH)) {
+  try { config = { ...config, ...JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf-8')) }; } catch(e) {}
+}
+// Resolve to absolute paths
+config.audioDir = path.resolve(config.audioDir);
+config.bookmarkDir = path.resolve(config.bookmarkDir);
+const AUDIO_DIR = config.audioDir;
+const BOOKMARKS_DIR = config.bookmarkDir;
 
 // MIME types
 const MIME = {
@@ -59,6 +69,33 @@ const server = http.createServer((req, res) => {
   const url = new URL(req.url, `http://localhost:${PORT}`);
   let urlPath = url.pathname;
 
+  // API: get config
+  if (urlPath === '/api/config') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ audioDir: config.audioDir, bookmarkDir: config.bookmarkDir }));
+    return;
+  }
+
+  // API: update config
+  if (urlPath === '/api/config' && req.method === 'POST') {
+    let body = '';
+    req.on('data', c => body += c);
+    req.on('end', () => {
+      try {
+        const data = JSON.parse(body);
+        if (data.audioDir) config.audioDir = path.resolve(data.audioDir);
+        if (data.bookmarkDir) config.bookmarkDir = path.resolve(data.bookmarkDir);
+        fs.writeFileSync(CONFIG_PATH, JSON.stringify({ audioDir: config.audioDir, bookmarkDir: config.bookmarkDir }, null, 2));
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: true, audioDir: config.audioDir, bookmarkDir: config.bookmarkDir }));
+      } catch (e) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: e.message }));
+      }
+    });
+    return;
+  }
+
   // API: list audio files
   if (urlPath === '/api/audio-list') {
     const list = scanDir(AUDIO_DIR);
@@ -108,6 +145,16 @@ const server = http.createServer((req, res) => {
   if (urlPath.startsWith('/')) urlPath = urlPath.slice(1);
   if (!urlPath) urlPath = 'index.html';
 
+  // Map /audio/... to AUDIO_DIR
+  if (urlPath.startsWith('audio/') || urlPath === 'audio') {
+    const relativePath = urlPath.replace(/^audio\/?/, '');
+    let decodedPath;
+    try { decodedPath = decodeURIComponent(relativePath); } catch(e) { decodedPath = relativePath; }
+    const filePath = path.join(AUDIO_DIR, decodedPath);
+    serveFile(filePath, res, true);
+    return;
+  }
+
   // Decode URL-encoded characters (for Chinese filenames)
   try { urlPath = decodeURIComponent(urlPath); } catch(e) {}
 
@@ -145,12 +192,19 @@ const server = http.createServer((req, res) => {
   serveFile(filePath, res);
 });
 
-function serveFile(filePath, res) {
+function serveFile(filePath, res, isAudio) {
   const ext = path.extname(filePath).toLowerCase();
   const mimeType = MIME[ext] || 'application/octet-stream';
 
   // Support range requests for audio streaming
-  const stat = fs.statSync(filePath);
+  let stat;
+  try {
+    stat = fs.statSync(filePath);
+  } catch(e) {
+    res.writeHead(404);
+    res.end('Not found: ' + filePath);
+    return;
+  }
   const range = res.req.headers.range;
 
   if (range && (mimeType.startsWith('audio/') || mimeType.startsWith('video/'))) {

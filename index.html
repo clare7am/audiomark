@@ -7,118 +7,120 @@
 <style>
   *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
   :root{
-    --bg:#1a1a2e;--bg2:#16213e;--bg3:#0f3460;
-    --accent:#e94560;--accent2:#533483;
-    --text:#eee;--text2:#aaa;--text3:#666;
-    --border:#2a2a4a;--card:#1e1e3a;--hover:#2a2a5a;
-    --radius:8px;--shadow:0 2px 12px rgba(0,0,0,.4);
+    --bg:#f5f5f7;--bg2:#fff;--bg3:#e8e8ed;
+    --accent:#007aff;--accent2:#5856d6;
+    --text:#1d1d1f;--text2:#86868b;--text3:#aeaeb2;
+    --border:#d2d2d7;--card:#fff;--hover:#f0f0f5;
+    --radius:12px;--shadow:0 1px 3px rgba(0,0,0,.08),0 4px 12px rgba(0,0,0,.04);
+    --font:-apple-system,BlinkMacSystemFont,'SF Pro Display','Helvetica Neue',sans-serif;
+    --mono:'SF Mono','Menlo','Consolas',monospace;
   }
-  html,body{height:100%;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);font-size:14px}
+  html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--text);font-size:14px;-webkit-font-smoothing:antialiased}
   body{display:flex;flex-direction:column;overflow:hidden}
 
   /* Header */
-  .header{display:flex;align-items:center;gap:16px;padding:12px 20px;background:var(--bg2);border-bottom:1px solid var(--border);flex-shrink:0}
-  .header h1{font-size:18px;font-weight:600;letter-spacing:1px;color:var(--accent);white-space:nowrap}
-  .header h1 span{color:var(--text2);font-weight:400;font-size:13px;margin-left:8px}
-  #folder-btn{background:var(--bg3);color:var(--text);border:1px solid var(--border);padding:8px 16px;border-radius:var(--radius);cursor:pointer;font-size:13px;transition:all .2s}
-  #folder-btn:hover{background:var(--accent);border-color:var(--accent)}
-  #folder-btn svg{vertical-align:middle;margin-right:6px}
-  .current-file{color:var(--text2);font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+  .header{display:flex;align-items:center;gap:12px;padding:0 20px;height:52px;background:rgba(255,255,255,.72);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid var(--border);flex-shrink:0}
+  .header h1{font-size:15px;font-weight:600;letter-spacing:-.01em;color:var(--text);white-space:nowrap}
+  .header h1 span{color:var(--text2);font-weight:400;font-size:12px;margin-left:6px}
+  #folder-btn{display:none}
+  .current-file{color:var(--text2);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;padding-left:8px}
+  #settings-btn{background:none;border:none;color:var(--text2);cursor:pointer;padding:6px;border-radius:6px;transition:all .15s;display:flex;align-items:center}
+  #settings-btn:hover{background:var(--hover);color:var(--text)}
 
   /* Main Layout */
   .main{display:flex;flex:1;overflow:hidden}
 
   /* Sidebar - File Tree */
-  .sidebar{width:260px;min-width:200px;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0}
-  .sidebar-header{padding:10px 14px;font-size:12px;color:var(--text2);text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid var(--border)}
-  .file-tree{flex:1;overflow-y:auto;padding:8px 0}
+  .sidebar{width:240px;min-width:200px;background:rgba(255,255,255,.6);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0}
+  .sidebar-header{padding:12px 16px;font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid var(--border)}
+  .file-tree{flex:1;overflow-y:auto;padding:4px 0}
   .file-tree::-webkit-scrollbar{width:6px}
   .file-tree::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
-  .tree-item{display:flex;align-items:center;padding:6px 14px;cursor:pointer;transition:background .15s;user-select:none;gap:6px}
+  .tree-item{display:flex;align-items:center;padding:6px 16px;cursor:pointer;transition:background .15s;user-select:none;gap:6px;font-size:13px}
   .tree-item:hover{background:var(--hover)}
-  .tree-item.active{background:var(--bg3);color:var(--accent)}
+  .tree-item.active{background:var(--accent);color:#fff}
   .tree-item.folder{color:var(--text2)}
-  .tree-item .icon{width:16px;text-align:center;flex-shrink:0;font-size:12px}
+  .tree-item .icon{width:16px;text-align:center;flex-shrink:0;font-size:14px}
   .tree-item .name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .tree-folder .icon{color:var(--accent2)}
+  .tree-folder .icon{color:var(--text3)}
   .tree-audio .icon{color:var(--accent)}
   .tree-indent{display:inline-block;width:16px;flex-shrink:0}
 
   /* Player Area */
-  .player-area{flex:1;display:flex;flex-direction:column;padding:24px;overflow-y:auto;gap:20px}
+  .player-area{flex:1;display:flex;flex-direction:column;padding:32px;overflow-y:auto;gap:24px}
 
   /* Now Playing */
-  .now-playing{text-align:center;padding:20px 0}
-  .now-playing .title{font-size:20px;font-weight:600;margin-bottom:4px}
-  .now-playing .subtitle{font-size:13px;color:var(--text2)}
+  .now-playing{text-align:center;padding:16px 0 8px}
+  .now-playing .title{font-size:22px;font-weight:600;letter-spacing:-.02em;margin-bottom:4px}
+  .now-playing .subtitle{font-size:13px;color:var(--text2);font-weight:400}
 
   /* Progress Bar */
   .progress-container{background:var(--card);border-radius:var(--radius);padding:16px 20px;box-shadow:var(--shadow)}
-  .time-display{display:flex;justify-content:space-between;font-size:12px;color:var(--text2);margin-bottom:8px;font-family:'Consolas',monospace}
+  .time-display{display:flex;justify-content:space-between;font-size:12px;color:var(--text2);margin-bottom:8px;font-family:var(--mono);font-weight:400}
   .progress-bar-wrap{position:relative;height:32px;display:flex;align-items:center;cursor:pointer}
-  .progress-bar{width:100%;height:6px;background:var(--border);border-radius:3px;position:relative;overflow:visible}
-  .progress-fill{height:100%;background:linear-gradient(90deg,var(--accent2),var(--accent));border-radius:3px;width:0%;transition:width .1s linear;position:relative}
-  .progress-fill::after{content:'';position:absolute;right:-6px;top:50%;transform:translateY(-50%);width:14px;height:14px;background:var(--accent);border-radius:50%;box-shadow:0 0 6px var(--accent)}
-  .bookmark-marker{position:absolute;top:50%;transform:translate(-50%,-50%);width:10px;height:10px;background:var(--accent2);border:2px solid var(--accent);border-radius:50%;z-index:2;cursor:pointer;transition:transform .15s}
-  .bookmark-marker:hover{transform:translate(-50%,-50%) scale(1.3)}
+  .progress-bar{width:100%;height:4px;background:var(--bg3);border-radius:2px;position:relative;overflow:visible}
+  .progress-fill{height:100%;background:var(--accent);border-radius:2px;width:0%;transition:width .1s linear;position:relative}
+  .progress-fill::after{content:'';position:absolute;right:-5px;top:50%;transform:translateY(-50%);width:10px;height:10px;background:#fff;border:2px solid var(--accent);border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,.15);opacity:0;transition:opacity .15s}
+  .progress-bar-wrap:hover .progress-fill::after{opacity:1}
+  .bookmark-marker{position:absolute;top:50%;transform:translate(-50%,-50%);width:8px;height:8px;background:var(--accent2);border:2px solid #fff;border-radius:50%;z-index:2;cursor:pointer;transition:transform .15s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+  .bookmark-marker:hover{transform:translate(-50%,-50%) scale(1.4)}
 
   /* Controls */
-  .controls{display:flex;justify-content:center;align-items:center;gap:12px;padding:16px 0;flex-wrap:wrap}
-  .ctrl-btn{background:var(--card);border:1px solid var(--border);color:var(--text);width:44px;height:44px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;font-size:18px}
-  .ctrl-btn:hover{background:var(--bg3);border-color:var(--accent)}
-  .ctrl-btn.primary{width:56px;height:56px;background:var(--accent);border-color:var(--accent);font-size:22px}
-  .ctrl-btn.primary:hover{background:#d63a52}
-  .ctrl-btn.active{background:var(--accent);border-color:var(--accent);color:#fff}
+  .controls{display:flex;justify-content:center;align-items:center;gap:16px;padding:8px 0;flex-wrap:wrap}
+  .ctrl-btn{background:none;border:none;color:var(--text);width:40px;height:40px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s}
+  .ctrl-btn:hover{background:var(--hover)}
+  .ctrl-btn.primary{width:52px;height:52px;background:var(--accent);color:#fff}
+  .ctrl-btn.primary:hover{background:#0066d6}
+  .ctrl-btn svg{display:block}
 
   /* Speed Controls */
-  .speed-group{display:flex;align-items:center;gap:6px;margin-left:20px}
-  .speed-group label{color:var(--text2);font-size:12px}
-  .speed-btn{background:var(--card);border:1px solid var(--border);color:var(--text2);padding:4px 10px;border-radius:4px;cursor:pointer;font-size:12px;transition:all .15s}
-  .speed-btn:hover{border-color:var(--accent);color:var(--text)}
-  .speed-btn.active{background:var(--accent);border-color:var(--accent);color:#fff}
+  .speed-group{display:flex;align-items:center;gap:4px;margin-left:24px;background:var(--bg3);border-radius:8px;padding:3px}
+  .speed-btn{background:none;border:none;color:var(--text2);padding:6px 12px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:500;transition:all .15s;font-family:var(--font)}
+  .speed-btn:hover{color:var(--text)}
+  .speed-btn.active{background:#fff;color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.1)}
 
   /* Bookmarks Section */
-  .bookmarks-section{background:var(--card);border-radius:var(--radius);padding:16px 20px;box-shadow:var(--shadow)}
-  .bookmarks-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
-  .bookmarks-header h3{font-size:15px;font-weight:600}
-  #add-bookmark{background:var(--accent);color:#fff;border:none;padding:8px 14px;border-radius:var(--radius);cursor:pointer;font-size:13px;transition:all .2s;display:flex;align-items:center;gap:6px}
-  #add-bookmark:hover{background:#d63a52}
-  .bookmarks-list{max-height:300px;overflow-y:auto;display:flex;flex-direction:column;gap:8px}
+  .bookmarks-section{background:var(--card);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow)}
+  .bookmarks-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+  .bookmarks-header h3{font-size:15px;font-weight:600;letter-spacing:-.01em}
+  #add-bookmark{background:var(--accent);color:#fff;border:none;padding:8px 14px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:500;transition:all .2s;display:flex;align-items:center;gap:5px;font-family:var(--font)}
+  #add-bookmark:hover{background:#0066d6}
+  .bookmarks-list{max-height:280px;overflow-y:auto;display:flex;flex-direction:column;gap:8px}
   .bookmarks-list::-webkit-scrollbar{width:6px}
   .bookmarks-list::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
-  .bookmark-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:12px;transition:border-color .15s}
+  .bookmark-card{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:12px;transition:border-color .15s}
   .bookmark-card:hover{border-color:var(--accent)}
-  .bookmark-card .time{font-family:'Consolas',monospace;font-size:14px;color:var(--accent);font-weight:600;cursor:pointer}
+  .bookmark-card .time{font-family:var(--mono);font-size:14px;color:var(--accent);font-weight:600;cursor:pointer}
   .bookmark-card .time:hover{text-decoration:underline}
-  .bookmark-card .note-area{width:100%;margin-top:8px;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:8px;border-radius:4px;font-size:13px;resize:vertical;min-height:40px;font-family:inherit}
-  .bookmark-card .note-area:focus{outline:none;border-color:var(--accent)}
-  .bookmark-card .actions{display:flex;justify-content:flex-end;gap:8px;margin-top:8px}
-  .bookmark-card .actions button{background:none;border:none;color:var(--text2);cursor:pointer;font-size:12px;padding:4px 8px;border-radius:4px;transition:all .15s}
+  .bookmark-card .note-area{width:100%;margin-top:8px;background:#fff;border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:6px;font-size:13px;resize:vertical;min-height:36px;font-family:var(--font);line-height:1.5}
+  .bookmark-card .note-area:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(0,122,255,.12)}
+  .bookmark-card .actions{display:flex;justify-content:flex-end;gap:4px;margin-top:8px}
+  .bookmark-card .actions button{background:none;border:none;color:var(--text2);cursor:pointer;font-size:12px;padding:4px 8px;border-radius:4px;transition:all .15s;font-family:var(--font)}
   .bookmark-card .actions button:hover{background:var(--hover);color:var(--text)}
-  .bookmark-card .actions .del:hover{color:var(--accent)}
-  .no-bookmarks{text-align:center;color:var(--text3);padding:20px;font-size:13px}
+  .bookmark-card .actions .del:hover{color:#ff3b30}
+  .no-bookmarks{text-align:center;color:var(--text3);padding:16px;font-size:13px}
 
   /* Save/Export */
-  .save-bar{display:flex;justify-content:flex-end;gap:8px;padding:8px 0}
-  .save-btn{background:var(--bg3);color:var(--text);border:1px solid var(--border);padding:8px 16px;border-radius:var(--radius);cursor:pointer;font-size:13px;transition:all .2s}
-  .save-btn:hover{background:var(--accent);border-color:var(--accent)}
+  .save-bar{display:flex;justify-content:flex-end;gap:8px;padding:12px 0 0}
+  .save-btn{background:none;color:var(--accent);border:1px solid var(--accent);padding:7px 14px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:500;transition:all .2s;font-family:var(--font)}
+  .save-btn:hover{background:var(--accent);color:#fff}
 
   /* Empty State */
-  .empty-state{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--text3);gap:16px;text-align:center;padding:40px}
-  .empty-state svg{opacity:.3}
-  .empty-state p{font-size:15px}
-  .empty-state .hint{font-size:13px;color:var(--text3)}
+  .empty-state{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--text3);gap:12px;text-align:center;padding:40px}
+  .empty-state svg{opacity:.2}
+  .empty-state p{font-size:15px;font-weight:500}
+  .empty-state .hint{font-size:13px;color:var(--text3);font-weight:400}
 
   /* Toast */
-  .toast{position:fixed;bottom:24px;right:24px;background:var(--bg3);color:var(--text);padding:12px 20px;border-radius:var(--radius);box-shadow:var(--shadow);transform:translateY(100px);opacity:0;transition:all .3s;z-index:100;font-size:13px}
+  .toast{position:fixed;bottom:24px;right:24px;background:rgba(29,29,31,.85);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);color:#fff;padding:12px 18px;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.15);transform:translateY(100px);opacity:0;transition:all .3s cubic-bezier(.4,0,.2,1);z-index:100;font-size:13px;font-weight:500}
   .toast.show{transform:translateY(0);opacity:1}
-  .toast.success{border-left:4px solid #4ade80}
-  .toast.info{border-left:4px solid var(--accent)}
+  .toast.success{border-left:3px solid #34c759}
+  .toast.info{border-left:3px solid var(--accent)}
 
   /* Responsive */
   @media(max-width:768px){
     .sidebar{width:200px;min-width:160px}
-    .controls{gap:8px}
+    .controls{gap:12px}
     .speed-group{margin-left:0}
   }
 </style>
@@ -127,12 +129,27 @@
 
 <div class="header">
   <h1>🎵 AudioMark <span>音频书签播放器</span></h1>
-  <button id="folder-btn">
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
-    选择文件夹
+  <button id="settings-btn" title="设置">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
   </button>
-  <input type="file" id="folder-input" webkitdirectory multiple accept="audio/*" hidden>
   <div class="current-file" id="current-file">未选择音频</div>
+</div>
+
+<!-- Settings Modal -->
+<div id="settings-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);backdrop-filter:blur(4px);z-index:200;align-items:center;justify-content:center">
+  <div style="background:var(--bg2);border-radius:14px;width:420px;max-width:90vw;box-shadow:0 20px 60px rgba(0,0,0,.2);overflow:hidden">
+    <div style="padding:18px 20px 14px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+      <h3 style="font-size:16px;font-weight:600">设置</h3>
+      <button id="close-settings" style="background:none;border:none;color:var(--text2);cursor:pointer;padding:4px;font-size:18px;line-height:1">✕</button>
+    </div>
+    <div style="padding:20px">
+      <label style="display:block;font-size:13px;font-weight:500;color:var(--text2);margin-bottom:6px">音频文件夹路径</label>
+      <input type="text" id="cfg-audio-dir" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;background:var(--bg);color:var(--text);font-family:var(--mono);margin-bottom:16px;box-sizing:border-box">
+      <label style="display:block;font-size:13px;font-weight:500;color:var(--text2);margin-bottom:6px">书签保存路径</label>
+      <input type="text" id="cfg-bookmark-dir" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;background:var(--bg);color:var(--text);font-family:var(--mono);margin-bottom:20px;box-sizing:border-box">
+      <button id="save-config" style="width:100%;padding:10px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;font-family:var(--font)">保存并重新加载</button>
+    </div>
+  </div>
 </div>
 
 <div class="main">
@@ -176,20 +193,22 @@
 
       <!-- Controls -->
       <div class="controls">
-        <button class="ctrl-btn" id="btn-slow2" title="0.5x">🐢</button>
-        <button class="ctrl-btn" id="btn-slow1" title="0.75x">🐌</button>
-        <button class="ctrl-btn" id="btn-prev" title="后退10秒">⏪</button>
-        <button class="ctrl-btn primary" id="btn-play" title="播放/暂停">▶</button>
-        <button class="ctrl-btn" id="btn-next" title="前进10秒">⏩</button>
-        <button class="ctrl-btn" id="btn-fast1" title="1.5x">🏃</button>
-        <button class="ctrl-btn" id="btn-fast2" title="2x">🚀</button>
+        <button class="ctrl-btn" id="btn-prev" title="后退10秒">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="19 20 9 12 19 4 19 20"/><line x1="5" y1="19" x2="5" y2="5"/></svg>
+        </button>
+        <button class="ctrl-btn primary" id="btn-play" title="播放/暂停">
+          <svg id="icon-play" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 3 20 12 6 21 6 3"/></svg>
+          <svg id="icon-pause" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" style="display:none"><rect x="5" y="3" width="4" height="18"/><rect x="15" y="3" width="4" height="18"/></svg>
+        </button>
+        <button class="ctrl-btn" id="btn-next" title="前进10秒">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19"/></svg>
+        </button>
         <div class="speed-group">
-          <label>速度:</label>
-          <button class="speed-btn active" data-speed="1">1x</button>
-          <button class="speed-btn" data-speed="1.5">1.5x</button>
-          <button class="speed-btn" data-speed="2">2x</button>
-          <button class="speed-btn" data-speed="0.75">0.75x</button>
-          <button class="speed-btn" data-speed="0.5">0.5x</button>
+          <button class="speed-btn" data-speed="0.5">0.5×</button>
+          <button class="speed-btn" data-speed="0.75">0.75×</button>
+          <button class="speed-btn active" data-speed="1">1×</button>
+          <button class="speed-btn" data-speed="1.5">1.5×</button>
+          <button class="speed-btn" data-speed="2">2×</button>
         </div>
       </div>
 
@@ -231,8 +250,6 @@
 
   // ===== DOM =====
   const $ = id => document.getElementById(id);
-  const folderBtn = $('folder-btn');
-  const folderInput = $('folder-input');
   const currentFileLabel = $('current-file');
   const fileTree = $('file-tree');
   const emptyState = $('empty-state');
@@ -253,6 +270,57 @@
   const loadBookmarksBtn = $('load-bookmarks');
   const toast = $('toast');
 
+  // ===== Settings =====
+  const settingsModal = $('settings-modal');
+  const cfgAudioDir = $('cfg-audio-dir');
+  const cfgBookmarkDir = $('cfg-bookmark-dir');
+
+  $('settings-btn').addEventListener('click', ()=>{
+    fetch('/api/config')
+      .then(r=>r.json())
+      .then(data=>{
+        cfgAudioDir.value = data.audioDir || '';
+        cfgBookmarkDir.value = data.bookmarkDir || '';
+        settingsModal.style.display = 'flex';
+      })
+      .catch(()=>{
+        settingsModal.style.display = 'flex';
+      });
+  });
+
+  $('close-settings').addEventListener('click', ()=>{
+    settingsModal.style.display = 'none';
+  });
+
+  settingsModal.addEventListener('click', e=>{
+    if(e.target === settingsModal) settingsModal.style.display = 'none';
+  });
+
+  $('save-config').addEventListener('click', ()=>{
+    const audioDir = cfgAudioDir.value.trim();
+    const bookmarkDir = cfgBookmarkDir.value.trim();
+    if(!audioDir || !bookmarkDir){
+      showToast('路径不能为空','info');
+      return;
+    }
+    fetch('/api/config', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({audioDir, bookmarkDir})
+    })
+    .then(r=>r.json())
+    .then(res=>{
+      if(res.ok){
+        showToast('已保存，正在重新加载...','success');
+        settingsModal.style.display = 'none';
+        setTimeout(()=> location.reload(), 500);
+      } else {
+        showToast('保存失败: '+(res.error||''),'info');
+      }
+    })
+    .catch(e=> showToast('保存失败: '+e.message,'info'));
+  });
+
   // ===== Audio extensions =====
   const AUDIO_EXT = new Set(['.mp3','.wav','.ogg','.flac','.aac','.m4a','.wma','.webm','.opus']);
 
@@ -266,11 +334,12 @@
   }
 
   // ===== Format time =====
-  function formatTime(sec){
-    if(isNaN(sec)||sec<0) return '00:00.000';
+  function formatTime(sec, showMs=false){
+    if(isNaN(sec)||sec<0) return showMs ? '00:00.000' : '00:00';
     const m = Math.floor(sec/60);
     const s = sec % 60;
-    return String(m).padStart(2,'0')+':'+s.toFixed(3).padStart(6,'0');
+    if(showMs) return String(m).padStart(2,'0')+':'+s.toFixed(3).padStart(6,'0');
+    return String(m).padStart(2,'0')+':'+Math.floor(s).toString().padStart(2,'0');
   }
 
   // ===== Auto-load audio folder via server API =====
@@ -326,7 +395,7 @@
         const hasFolders = Object.keys(obj[k]).some(x=>x!=='__files__');
         if(hasFiles || hasFolders){
           html += `<div class="tree-item tree-folder" data-folder="${k}">`;
-          html += `<span class="icon">📁</span><span class="name">${k}</span>`;
+          html += `<span class="icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg></span><span class="name">${k}</span>`;
           html += `</div>`;
           html += renderTree(obj[k], indent+1);
         }
@@ -334,7 +403,7 @@
 
       files.forEach(f => {
         html += `<div class="tree-item tree-audio" data-name="${f.name}">`;
-        html += `<span class="icon">🎵</span><span class="name">${f.name}</span>`;
+        html += `<span class="icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55C7.79 13 6 14.79 6 17s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg></span><span class="name">${f.name}</span>`;
         html += `</div>`;
       });
 
@@ -364,7 +433,8 @@
     trackTitle.textContent = entry.name;
     trackPath.textContent = entry.path;
     currentFileLabel.textContent = entry.path;
-    btnPlay.textContent = '▶';
+    $('icon-play').style.display='block';
+    $('icon-pause').style.display='none';
 
     fileTree.querySelectorAll('.tree-item').forEach(el=>el.classList.remove('active'));
     const treeItem = fileTree.querySelector(`.tree-audio[data-name="${CSS.escape(entry.name)}"]`);
@@ -395,9 +465,6 @@
     renderBookmarks();
     renderMarkers();
   }
-
-  // Hide the manual folder button since we auto-load
-  folderBtn.style.display = 'none';
 
   // Auto-load on startup
   loadAudioFolder();
@@ -430,7 +497,7 @@
         const hasFolders = Object.keys(obj[k]).some(x=>x!=='__files__');
         if(hasFiles || hasFolders){
           html += `<div class="tree-item tree-folder" data-folder="${k}">`;
-          html += `<span class="icon">📁</span><span class="name">${k}</span>`;
+          html += `<span class="icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg></span><span class="name">${k}</span>`;
           html += `</div>`;
           html += renderTree(obj[k], indent+1);
         }
@@ -438,7 +505,7 @@
 
       files.forEach(f => {
         html += `<div class="tree-item tree-audio" data-name="${f.name}">`;
-        html += `<span class="icon">🎵</span><span class="name">${f.name}</span>`;
+        html += `<span class="icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55C7.79 13 6 14.79 6 17s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg></span><span class="name">${f.name}</span>`;
         html += `</div>`;
       });
 
@@ -476,7 +543,8 @@
     trackTitle.textContent = entry.name;
     trackPath.textContent = entry.path;
     currentFileLabel.textContent = entry.path;
-    btnPlay.textContent = '▶';
+    $('icon-play').style.display='block';
+    $('icon-pause').style.display='none';
 
     // Highlight tree
     fileTree.querySelectorAll('.tree-item').forEach(el=>el.classList.remove('active'));
@@ -498,8 +566,14 @@
 
   // ===== Playback Controls =====
   btnPlay.addEventListener('click', togglePlay);
-  audio.addEventListener('play', ()=> btnPlay.textContent='⏸');
-  audio.addEventListener('pause', ()=> btnPlay.textContent='▶');
+  audio.addEventListener('play', ()=>{
+    $('icon-play').style.display='none';
+    $('icon-pause').style.display='block';
+  });
+  audio.addEventListener('pause', ()=>{
+    $('icon-play').style.display='block';
+    $('icon-pause').style.display='none';
+  });
 
   function togglePlay(){
     if(!audio.src) return;
@@ -510,36 +584,15 @@
   $('btn-next').addEventListener('click', ()=>{ if(audio.src) audio.currentTime = Math.min(audio.duration||0, audio.currentTime+10); });
 
   // Speed buttons
-  const speedBtns = document.querySelectorAll('.speed-btn, .ctrl-btn[id^="btn-slow"], .ctrl-btn[id^="btn-fast"]');
-  const speedMap = {
-    'btn-slow2': 0.5, 'btn-slow1': 0.75,
-    'btn-fast1': 1.5, 'btn-fast2': 2,
-  };
-
-  // Speed button clicks
-  $('btn-slow2').addEventListener('click', ()=> setSpeed(0.5));
-  $('btn-slow1').addEventListener('click', ()=> setSpeed(0.75));
-  $('btn-fast1').addEventListener('click', ()=> setSpeed(1.5));
-  $('btn-fast2').addEventListener('click', ()=> setSpeed(2));
-
   document.querySelectorAll('.speed-btn').forEach(btn=>{
     btn.addEventListener('click', ()=> setSpeed(parseFloat(btn.dataset.speed)));
   });
 
   function setSpeed(rate){
     audio.playbackRate = rate;
-    // Update active states
     document.querySelectorAll('.speed-btn').forEach(b=>{
       b.classList.toggle('active', parseFloat(b.dataset.speed)===rate);
     });
-    ['btn-slow2','btn-slow1','btn-fast1','btn-fast2'].forEach(id=>{
-      $(id).classList.toggle('active', speedMap[id]===rate);
-    });
-    if(rate===1){
-      document.querySelectorAll('.speed-btn').forEach(b=>{
-        if(parseFloat(b.dataset.speed)===1) b.classList.add('active');
-      });
-    }
   }
 
   // ===== Progress Bar =====
