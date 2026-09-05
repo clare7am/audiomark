@@ -46,7 +46,8 @@
     bindClicks(container, files);
   }
 
-  function renderTreeHtml(obj){
+  function renderNode(obj, depth){
+    depth = depth || 0;
     let html = '';
     const keys = Object.keys(obj).filter(k=>k!=='__files__').sort();
     const files = obj.__files__ || [];
@@ -55,22 +56,28 @@
       const hasFiles = obj[k].__files__ && obj[k].__files__.length;
       const hasFolders = Object.keys(obj[k]).some(x=>x!=='__files__');
       if(hasFiles || hasFolders){
-        html += `<div class="tree-item tree-folder" data-folder="${k}">`;
+        const indent = depth * 16;
+        html += `<div class="tree-item tree-folder" data-folder="${k}" style="padding-left:${indent + 8}px">`;
         html += `<span class="icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg></span>`;
         html += `<span class="name">${k}</span>`;
         html += `</div>`;
-        html += renderTreeHtml(obj[k]);
+        html += renderNode(obj[k], depth + 1);
       }
     });
 
     files.forEach(f => {
-      html += `<div class="tree-item tree-audio" data-name="${f.name}">`;
+      const indent = depth * 16;
+      html += `<div class="tree-item tree-audio" data-name="${f.name}" style="padding-left:${indent + 8}px">`;
       html += `<span class="icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55C7.79 13 6 14.79 6 17s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg></span>`;
       html += `<span class="name">${f.name}</span>`;
       html += `</div>`;
     });
 
     return html;
+  }
+
+  function renderTreeHtml(obj, depth){
+    return renderNode(obj, depth || 0);
   }
 
   function bindClicks(container, files){
